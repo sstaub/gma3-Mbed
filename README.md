@@ -85,7 +85,7 @@ interfaceUDP(gma3IP, gma3UdpPort);
 ```
 
 # Example
-Here a small example (main.cpp in examples) with an additional button to the QLab GO button
+Here a small example (main.cpp in examples) with an additional button as an QLab GO button
 
 ```cpp
 #include "mbed.h"
