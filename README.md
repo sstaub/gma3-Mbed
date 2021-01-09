@@ -32,7 +32,7 @@ The library support hardware elements like encoders, faders, buttons with some h
 use IOREF Pin instead +3.3V to the top (single pin) of the fader (100%).
 GND to the center button pin (2 pins, the outer pin is normaly for the leveler) of the fader (0%).
 
-![Development for testing using a breadboard](https://github.com/sstaub/gma3-Mbed/blob/master/images/gma3_nucleo.png?raw=true)<br>
+<img src="https://github.com/sstaub/gma3-Mbed/blob/master/images/gma3_nucleo.png?raw=true" width="85%"></img>
 
 # Usage
 
