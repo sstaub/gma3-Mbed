@@ -132,8 +132,7 @@ int main() {
 void interfaceETH(uint8_t localIP[], uint8_t subnet[]);
 ```
 This function is needed for initialize the ethernet connection to the GrandMA3 console.
-Following settings must done:
-- name of the UDP class member
+Following settings must done first before ``ìnterfaceUDP()```:
 - the local IP Address of the development board
 - the subnet address
 
@@ -146,7 +145,7 @@ interfaceETH(localIP, subnet);
 void interfaceUDP(uint8_t gma3IP[], uint16_t gma3UdpPort = 8000);
 ```
 This function is needed for initialize the UDP socket for connection to the GrandMA3 console.
-Following settings must done:
+Following settings must done after ```interfaceETH()```:
 - IP Address of the GrandMA3 console
 - OSC Port, set in the GrandMA3 console, standard is port 8000
 
