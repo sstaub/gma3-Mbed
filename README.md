@@ -46,9 +46,9 @@ Here an example OSC setup
 ## Mbed Studio
 The library is written and tested with the Mbed Studio IDE with Mbed OS v6.6
 ![Development on Mbed Studio](https://github.com/sstaub/gma3-Mbed/blob/master/images/gma3_development.png?raw=true)<br>
-You have to start with an new program:
-![Development on Mbed Studio](https://github.com/sstaub/gma3-Mbed/blob/master/images/new_1.png?raw=true)
-![Development on Mbed Studio](https://github.com/sstaub/gma3-Mbed/blob/master/images/new_2.png?raw=true)<br>
+You have to start with an new program:<br>
+<img src="https://github.com/sstaub/gma3-Mbed/blob/master/images/new_1.png?raw=true" width="30%"></img> <img src="https://github.com/sstaub/gma3-Mbed/blob/master/images/new_2.png?raw=true" width="30%"></img> 
+<br>
 Then put the gma3 library folder inside the project. You can copy the contents of the main.cpp example to prepared main.cpp<br>
 The first build need a lot of time and processor power, be patient.
 
