@@ -1,5 +1,5 @@
 # **Mbed OSC library for GrandMA3 consoles**
-An object orientated library for Mbed [https://os.mbed.com](https://os.mbed.com) framework to control GrandMA3 consoles with OSC over Ethernet UDP. The goal of the library is to have a smart toolbox to create your own hardware which covers your needing by endless combinations of hardware elements.
+An object orientated library for Mbed [https://os.mbed.com](https://os.mbed.com) framework to control GrandMA3 consoles with OSC over Ethernet UDP and TCP. The goal of the library is to have a smart toolbox to create your own hardware which covers your needing by endless combinations of hardware elements.
 
 ## Mbed Studio IDE
 The Mbed Studio IDE is recommanded for development. You can downlaod it from [https://os.mbed.com/studio/](https://os.mbed.com/studio/)
@@ -43,6 +43,14 @@ You can find general information about OSC on http://opensoundcontrol.org/
 Here an example OSC setup
 ![GrandMA3 OSC Setup](https://github.com/sstaub/gma3-Mbed/blob/master/images/gma3_osc_setup.png?raw=true)<br>
 
+## TCP support
+This library also allows the use of TCP connections.
+
+- This is a hard and dirty implementation because of missing stable TCP connections. If you e.g. press a button, a socket will open, send the message and then closes the socket. So you will see red lines in sysmon because of socket disconnections. I hope I will find  a better way later.
+- You should use TCP when you want sure that the message is sended and received.
+- TCP should not use for faders and encoders, because it cause a lot of traffic. You should use UDP instead.
+- There is a bug in the TCP implementation of the GrandMA3 console. Normally you have two choices using for encoding/decoding TCP messages with OSC: SLIP (OSC spec 1.1) or Lenght (OSC spec 1.0) encoding, both doesn't work. Therefore you must the ```TCP``` option (no encoding) instead of ```TCP10``` (OSC 1.0) and ```TCP11``` (OSC 1.1) in setup for the class members.
+
 ## Mbed Studio
 The library is written and tested with the Mbed Studio IDE with Mbed OS v6.6
 ![Development on Mbed Studio](https://github.com/sstaub/gma3-Mbed/blob/master/images/gma3_development.png?raw=true)<br>
@@ -75,6 +83,7 @@ uint8_t subnet[4] = {255, 255, 0, 0};
 // grandMA3 network settings
 uint8_t gma3IP[4] = {10, 101, 1, 100};
 uint16_t gma3UdpPort = 8000;
+uint16_t gma3TcpPort = 9000;
 ```
 
 In the beginning of main() you must start the network services.
@@ -82,6 +91,7 @@ In the beginning of main() you must start the network services.
 ```cpp
 interfaceETH(localIP, subnet);
 interfaceUDP(gma3IP, gma3UdpPort);
+interfaceTCP(gma3IP, gma3TcpPort);
 ```
 
 # Example
@@ -98,16 +108,17 @@ uint8_t subnet[4] = {255, 255, 0, 0};
 // grandMA3 network settings
 uint8_t gma3IP[4] = {10, 101, 1, 100};
 uint16_t gma3UdpPort = 8000;
+uint16_t gma3TcpPort = 9000;
 
 // QLab network settings
 uint8_t qlabIP[4] = {10, 101, 1, 100};
 uint16_t qlabUdpPort = 53000;
 
+Key key201(D3, 1, 201);
 Fader fader201(A0, 1, 201);
 ExecutorKnob enc301(D0, D1, 1, 301);
-CmdButton macro1(D2, "GO+ Macro 1");
-Key key201(D3, 1, 201);
-OscButton qlab(D4, "/go", qlabIP, qlabUdpPort);
+CmdButton macro1(D2, "GO+ Macro 1", TCP); // TCP for GrandMA3
+OscButton qlabGo(D4, "/go", qlabIP, qlabUdpPort, TCP11); // TCP 1.1 for QLab
 
 int main() {
 	prefix("gma3");
@@ -148,10 +159,23 @@ void interfaceUDP(uint8_t gma3IP[], uint16_t gma3UdpPort = 8000);
 This function is needed for initialize the UDP socket for connection to the GrandMA3 console.
 Following settings must done:
 - IP Address of the GrandMA3 console
-- OSC Port, set in the GrandMA3 console, standard is port 8000
+- OSC UDP Port, set in the GrandMA3 console, standard is port 8000
 
 ```cpp
 interfaceUDP(gma3IP, gma3UdpPort);
+```
+
+### interfacTCP()
+```
+void interfaceTCP(uint8_t gma3IP[], uint16_t gma3TcpPort = 9000);
+```
+This function is needed for initialize the UDP socket for connection to the GrandMA3 console.
+Following settings must done:
+- IP Address of the GrandMA3 console
+- OSC TCP Port, set in the GrandMA3 console, standard is port 9000
+
+```cpp
+interfaceTCP(gma3IP, gma3TcpPort = 8010);
 ```
 
 ## Prefix name
@@ -224,17 +248,18 @@ key("Taste");
 With this class you can create Key objects which can be triggered with a button.
 
 ```cpp
-Key(PinName pin, uint16_t page, uint16_t key);
+Key(PinName pin, uint16_t page, uint16_t key, protocol_t protocol = UDP);
 ```
 - **pin** are the connection Pin for the button hardware
 - **page** is the page number of the executors, refer to the GrandMA3 manual
 - **key** is the key number of the executors, refer to the GrandMA3 manual
+- **protocol** is the protocol type you want to use, UDP, TCP, TCP10, TCP11, standard is UDP
 
 Example, this should done before ```main()```
 
 ```cpp
-Key key201(A1, 1, 201);
-// executor button 201 on page 1 on pin A1
+Key key201(A1, 1, 201, TCP);
+// executor button 201 on page 1 on pin A1 using TCP
 ```
 To get the actual button state you must call inside the loop():
 
@@ -250,11 +275,12 @@ key201.update();
 ## **Fader**
 This class allows you to control a fader containing  with a hardware (slide) potentiometer as an executor fader. 
 ```
-Fader(PinName pin, uint16_t page, uint16_t key);
+Fader(PinName pin, uint16_t page, uint16_t key, protocol_t protocol = UDP);
 ```
 - **pin** are the connection Analog Pin for the fader leveler
 - **page** is the page number of the executors, refer to the GrandMA3 manual
 - **fader** is the fader number of the executors, refer to the GrandMA3 manual
+- **protocol** is the protocol type you want to use, UDP, TCP, TCP10, TCP11, standard is UDP
 
 Example, this should done before ```main()```
 
@@ -277,12 +303,13 @@ fader201.update();
 The ExecutorKnob class creates an encoder object which allows to control the executor knobs:
 
 ```cpp
-ExecutorKnob(PinName pinA, PinName pinB, uint16_t page, uint16_t executorKnob, uint8_t direction = FORWARD);
+ExecutorKnob(PinName pinA, PinName pinB, uint16_t page, uint16_t executorKnob, uint8_t direction = FORWARD, protocol_t protocol = UDP);
 ```
 - **pinA** and **pinB** are the connection Pins for the encoder hardware
 - **page** is the page number of the executors, refer to the GrandMA3 manual
 - **executorKnob** is the number of the executor knob, refer to the GrandMA3 manual
 - **direction** is used for changing the direction of the encoder to clockwise if pinA and pinB are swapped. The directions are FORWARD (standard) or REVERSE
+- **protocol** is the protocol type you want to use, UDP, TCP, TCP10, TCP11, standard is UDP
 
 Example, this should done before ```main()```
 
@@ -306,11 +333,11 @@ enc301.update();
 With this class you can create Keya button which allows to send commands to the console.
 
 ```cpp
-CmdButton(PinName pin, string command);
+CmdButton(PinName pin, string command, protocol_t protocol = UDP);
 ```
 - **pin** are the connection Pin for the button hardware
 - **command** is a command string which should send to the console, refer also to the GrandMA3 manual
-
+- **protocol** is the protocol type you want to use, UDP, TCP, TCP10, TCP11, standard is UDP
 
 Example, this should done before ```main()```
 
@@ -334,25 +361,28 @@ With this class you can create generic buttons which allows you to control other
 **! When using Interger or Float, 0 or 0.0 is send when releasing the button !**
 
 ```
-OscButton(PinName pin, string pattern, int32_t integer32, IPAddress ip, uint16_t port);
-OscButton(PinName pin, string pattern, float float32, IPAddress ip, uint16_t port);
-OscButton(PinName pin, string pattern, const char message[], IPAddress ip, uint16_t port);
-OscButton(PinName pin, string pattern, IPAddress ip, uint16_t port);
+OscButton(PinName pin, string pattern, int32_t integer32, IPAddress ip, uint16_t port, protocol_t protocol = UDP);
+OscButton(PinName pin, string pattern, float float32, IPAddress ip, uint16_t port, protocol_t protocol = UDP);
+OscButton(PinName pin, string pattern, string msg, IPAddress ip, uint16_t port, protocol_t protocol = UDP);
+OscButton(PinName pin, string pattern, flag_t flag, uint8_t ip[], uint16_t port, protocol_t protocol = UDP);
+OscButton(PinName pin, string pattern, IPAddress ip, uint16_t port, protocol_t protocol = UDP);
 ```
 - **pin** the connection Pin for the button hardware
 - **pattern** the OSC address pattern string
 - **integer32** optional Integer data to send, you must cast this data e.g. ```(int32_t)1```
 - **float32** optional Float data to send, you must cast this data e.g. ```1.0f```
-- **message** optional String to send
+- **msg** optional String to send
+- **flag** optional OSC flags (T, F, N, I)
 - **ip** optional destination IP address
 - **port** optional destination port address
+- **protocol** is the protocol type you want to use, UDP, TCP, TCP10, TCP11, standard is UDP
 
 Example for Ethernet UDP using a button on Pin 0, this should done before the setup()
 
 ```cpp
 uint8_t qlabIP[4] = {10, 101, 1, 100};
 uint16_t qlabUDPPort = 53000; // QLab receive port
-OscButton qlabGo(D4, "/go", qlabIP, qlabUdpPort);
+OscButton qlabGo(D4, "/go", qlabIP, qlabUdpPort, TCP11); // TCP 1.1
 ```
 To get the actual button state you must call inside the loop():
 

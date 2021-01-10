@@ -24,15 +24,13 @@ THE SOFTWARE.
 #ifndef GMA3_H
 #define GMA3_H
 
-#include "SocketAddress.h"
 #include "mbed.h"
-#include <cstdint>
 #include <string>
 #include "EthernetInterface.h"
 
 using namespace std;
 
-// helpers
+// helper functions
 #define limit(x,low,high) ((x)<(low)?(low):((x)>(high)?(high):(x)))
 
 // button values
@@ -47,20 +45,33 @@ using namespace std;
 #define FADER_UPDATE_RATE_MS  40 // update each 40ms
 #define FADER_THRESHOLD       4 // Jitter threshold of the faders
 
-enum osc_t {
+// defines for SLIP
+const char END = 0xC0; // indicates end of packet
+const char ESC = 0xDB; // indicates byte stuffing
+const char ESC_END = 0xDC; // ESC ESC_END means END data byte
+const char ESC_ESC = 0xDD; // ESC ESC_ESC means ESC data byte
+
+typedef enum protocolType {
+	UDP,
+	TCP10,
+	TCP11,
+	TCP
+	} protocol_t;
+
+typedef enum oscType {
 	NONE,
 	INT32,
 	FLOAT32,
 	STRING,
 	FLAG,
-	};
+	} osc_t;
 
-enum flag_t {
+typedef enum flagType {
 	T,
 	F,
 	N,
 	I
-	};
+	} flag_t;
 
 void interfaceETH(uint8_t localIP[], uint8_t subnet[]);
 
@@ -73,6 +84,14 @@ void interfaceETH(uint8_t localIP[], uint8_t subnet[]);
 void interfaceUDP(uint8_t gma3IP[], uint16_t gma3UdpPort = 8000);
 
 /**
+ * @brief set TCP interface
+ * 
+ * @param gam3IP GrandMA3 console IP address
+ * @param gma3TcpPort OSC port off GrandMA3
+ */
+void interfaceTCP(uint8_t gma3IP[], uint16_t gma3TcpPort = 9000);
+
+/**
  * @brief send an OSC message via UDP
  * 
  * @param msg OSC message
@@ -80,6 +99,15 @@ void interfaceUDP(uint8_t gma3IP[], uint16_t gma3UdpPort = 8000);
  */
 void sendUDP(string& msg);
 void sendUDP(string& msg, SocketAddress address);
+
+/**
+ * @brief send an OSC message via TCP
+ * 
+ * @param msg OSC message
+ * @param address SocketAddress for generic OSC buttons
+ */
+void sendTCP(string& msg);
+void sendTCP(string& msg, SocketAddress address);
 
 /**
  * @brief set the Prefix name
@@ -131,8 +159,9 @@ class Key {
 		 * @param pin button pin
 		 * @param page number of the page
 		 * @param key number of the executor button
+		 * @param protocol type of the used protocol, UDP or TCP
 		 */
-		Key(PinName pin, uint16_t page, uint16_t key);
+		Key(PinName pin, uint16_t page, uint16_t key, protocol_t protocol = UDP);
 
 		/**
 		 * @brief update the state of the Key button, must in loop()
@@ -143,6 +172,7 @@ class Key {
 	private:
 
 		DigitalIn mypin;
+		protocol_t protocol;
 		uint16_t page;
 		uint16_t key;
   	bool last;
@@ -159,13 +189,14 @@ class Fader {
 	public:
 
 		/**
-		 * @brief Construct a new Key object
+		 * @brief Construct a new Fader object
 		 * 
 		 * @param pin fader leveler pin
 		 * @param page number of the page
 		 * @param key number of the executor button
+		 * @param protocol type of the used protocol, UDP or TCP
 		 */
-		Fader(PinName pin, uint16_t page, uint16_t key);
+		Fader(PinName pin, uint16_t page, uint16_t key, protocol_t protocol = UDP);
 
 		/**
 		 * @brief update the state of the Key button, must in loop()
@@ -176,6 +207,7 @@ class Fader {
 	private:
 
 		AnalogIn mypin;
+		protocol_t protocol;
 		uint16_t page;
 		uint16_t key;
 		int16_t analogLast;
@@ -201,8 +233,9 @@ class ExecutorKnob {
 		 * @param page number of the page
 	 	 * @param executorKnob number of the executorKnob
 		 * @param direction the direction for the encoder, can be FORWARD or REVERSE, depends on hardware alignment
+		 * @param protocol type of the used protocol, UDP or TCP
 		 */
-		ExecutorKnob(PinName pinA, PinName pinB, uint16_t page, uint16_t executorKnob, uint8_t direction = FORWARD);
+		ExecutorKnob(PinName pinA, PinName pinB, uint16_t page, uint16_t executorKnob, uint8_t direction = FORWARD, protocol_t protocol = UDP);
 
 		/**
 		 * @brief update the output of the executorKnob, must be in loop()
@@ -214,6 +247,7 @@ class ExecutorKnob {
 
 		DigitalIn mypinA;
 		DigitalIn mypinB;
+		protocol_t protocol;
 		uint16_t page;
 		uint16_t executorKnob;
 		bool pinALast;
@@ -225,7 +259,7 @@ class ExecutorKnob {
 
 
 /**
- * @brief Key object
+ * @brief CndButton object
  * 
  */
 class CmdButton {
@@ -233,12 +267,13 @@ class CmdButton {
 	public:
 
 		/**
-		 * @brief Construct a new Key object
+		 * @brief Construct a new CmdButton object
 		 * 
 		 * @param pin button pin
 		 * @param command string to command line
+		 * @param protocol type of the used protocol, UDP or TCP
 		 */
-		CmdButton(PinName pin, string command);
+		CmdButton(PinName pin, string command, protocol_t protocol = UDP);
 
 		/**
 		 * @brief update the state of the Key button, must in loop()
@@ -249,6 +284,7 @@ class CmdButton {
 	private:
 
 		DigitalIn mypin;
+		protocol_t protocol;
 		string command;
   	bool last;
 
@@ -275,11 +311,11 @@ class OscButton {
 		 * @param ip destination IP address
 		 * @param externPort destination port
 		 */
-		OscButton(PinName pin, string pattern, int32_t integer32, uint8_t ip[], uint16_t port);
-		OscButton(PinName pin, string pattern, float float32, uint8_t ip[], uint16_t port);
-		OscButton(PinName pin, string pattern, string msg, uint8_t ip[], uint16_t port);
-		OscButton(PinName pin, string pattern, flag_t flag, uint8_t ip[], uint16_t port);
-		OscButton(PinName pin, string pattern, uint8_t ip[], uint16_t port);
+		OscButton(PinName pin, string pattern, int32_t integer32, uint8_t ip[], uint16_t port, protocol_t protocol = UDP);
+		OscButton(PinName pin, string pattern, float float32, uint8_t ip[], uint16_t port, protocol_t protocol = UDP);
+		OscButton(PinName pin, string pattern, string msg, uint8_t ip[], uint16_t port, protocol_t protocol = UDP);
+		OscButton(PinName pin, string pattern, flag_t flag, uint8_t ip[], uint16_t port, protocol_t protocol = UDP);
+		OscButton(PinName pin, string pattern, uint8_t ip[], uint16_t port, protocol_t protocol = UDP);
 
 		/**
 		 * @brief update the state of the Key button, must in loop()
@@ -291,6 +327,7 @@ class OscButton {
 
 		SocketAddress address;
 		DigitalIn mypin;
+		protocol_t protocol;
 		string pattern;
 		string msg;
 		int32_t integer32;
@@ -308,10 +345,38 @@ class OscButton {
  * @param value integer32, float, string value
  * @param flag type value
  */
-void message(string& osc, int32_t value);
-void message(string& osc, float value);
-void message(string& osc, string value);
-void message(string& osc, flag_t flag);
-void message(string& osc);
+void message(string& osc, int32_t value, protocol_t protocol = UDP);
+void message(string& osc, float value, protocol_t protocol = UDP);
+void message(string& osc, string value, protocol_t protocol = UDP);
+void message(string& osc, flag_t flag, protocol_t protocol = UDP);
+void message(string& osc, protocol_t protocol = UDP);
+
+/**
+ * @brief Encode messages with SLIP
+ * 
+ * @param msg message
+ */
+void slipEncode(string& msg);
+
+/**
+ * @brief Decode SLIP encoded messages
+ * 
+ * @param msg message
+ */
+void slipDecode(string& msg);
+
+/**
+ * @brief Decode messages with Lengh identifier
+ * 
+ * @param msg message
+ */
+void tcpEncode(string& msg);
+
+/**
+ * @brief Encode messages with Lengh identifier
+ * 
+ * @param msg message
+ */
+void tcpDecode(string& msg);
 
 #endif
