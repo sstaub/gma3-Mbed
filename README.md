@@ -69,7 +69,7 @@ If you have whishes for other functions or classes enter the discussion forum. I
 
 1. You need to define IP addresses and ports 
 
-- **localIP** - You need a static IP address for your Arduino in the subnet range of network system
+- **localIP** - You need a static IP address for your Mbed board in the subnet range of network system
 - **subnet** - A subnet range is necessary
 - **gma3IP** - This is the GrandMA3 console IP address
 - **gma3UdpPort** - This is the destination port of the GrandMA3 console
@@ -242,6 +242,12 @@ key("Taste");
 ```
 
 # Classes
+## Pin Names
+Not all pin names follows the Arduino style (A0 - A5, D0 - D15), 
+you must use for pin names of ST Zio connector the microcontroller pin names.<br>
+For example instead of using ```D50``` as a pin name for the Nucleo-144 board you 
+must use ```PG_3```, this is a small, reported bug.<br>
+Have a look to the board documentation on the Mbed website.
 
 ## **Key**
 With this class you can create Key objects which can be triggered with a button.
