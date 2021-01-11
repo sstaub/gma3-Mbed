@@ -48,8 +48,8 @@ This library also allows the use of TCP connections.
 
 - This is a hard and dirty implementation because of missing stable TCP connections. If you e.g. press a button, a socket will open, send the message and then closes the socket. So you will see red lines in sysmon because of socket disconnections. I hope I will find  a better way later.
 - You should use TCP when you want sure that the message is sended and received.
-- TCP should not use for faders and encoders, because it cause a lot of traffic. You should use UDP instead.
-- There is a bug in the TCP implementation of the GrandMA3 console. Normally you have two choices using for encoding/decoding TCP messages with OSC: SLIP (OSC spec 1.1) or Lenght (OSC spec 1.0) encoding, both doesn't work. Therefore you must the ```TCP``` option (no encoding) instead of ```TCP10``` (OSC 1.0) and ```TCP11``` (OSC 1.1) in setup for the class members.
+- TCP should not use for faders and encoders, because this cause a lot of traffic. You should use UDP instead.
+- There is a bug in the TCP implementation of the GrandMA3 console. Normally you have two choices using for encoding/decoding TCP messages with OSC: SLIP (OSC spec 1.1) or Lenght (OSC spec 1.0) encoding, both doesn't work. Therefore you must use the ```TCP``` option (no encoding) instead of ```TCP10``` (OSC 1.0) and ```TCP11``` (OSC 1.1) in setup for the class members.
 
 ## Mbed Studio
 The library is written and tested with the Mbed Studio IDE with Mbed OS v6.6
